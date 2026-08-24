@@ -8,8 +8,6 @@
 
 In the Claude Code status bar (GLM quota segment alongside the Context bar, usage-tiered colors):
 
-![Status bar](assets/hud-statusline.jpg)
-
 ```
 V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
       purple slots, green = healthy;  colors shift green→yellow→red at 70%/85% usage
