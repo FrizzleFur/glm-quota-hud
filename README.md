@@ -6,12 +6,12 @@
 
 ## 效果
 
-```
-改造前（claude-hud 默认 extra 段，暗灰一片）:
-  GLM: V1 ok | V3 ok          ← 看不到用量，更不知道还能撑多久
+Claude Code 状态栏（GLM 额度段与 Context 进度条同框，用量分档变色）:
 
-改造后:
-  V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
+![状态栏效果](assets/hud-statusline.jpg)
+
+```
+V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
       ↑紫槽   ↑绿(健康)         ↑随用量变色: <70%绿 / 70-85%黄 / ≥85%红
 ```
 
@@ -62,6 +62,10 @@ export GLM_V3_TOKEN="你的积分套餐token"
 
 用 [cc-switch](https://github.com/farion1231/cc-switch) 管理多个 GLM 账号时，最疼的问题是：
 **切过去才发现 5h 窗口已经用完了**。CLI 模式就是为这个场景做的：
+
+![CC Switch 账号管理](assets/cc-switch.jpg)
+
+> CC Switch 负责账号切换与总额度卡片，glm-quota-hud 把额度搬进状态栏常驻监控——两者组成完整工作流。
 
 ```bash
 # 切换前：看清各账号窗口余量

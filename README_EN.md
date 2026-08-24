@@ -6,12 +6,12 @@
 
 ## What it looks like
 
-```
-Before (claude-hud default extra segment, all dim grey):
-  GLM: V1 ok | V3 ok          ← no usage info, no idea how long it lasts
+In the Claude Code status bar (GLM quota segment alongside the Context bar, usage-tiered colors):
 
-After:
-  V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
+![Status bar](assets/hud-statusline.jpg)
+
+```
+V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
       purple slots, green = healthy;  colors shift green→yellow→red at 70%/85% usage
 ```
 
@@ -62,6 +62,11 @@ Single-account users: one token is enough, the other account is skipped automati
 
 The pain of juggling multiple GLM accounts with [cc-switch](https://github.com/farion1231/cc-switch):
 **you switch over only to find the 5h window is exhausted**. CLI mode answers exactly that:
+
+![CC Switch](assets/cc-switch.jpg)
+
+> cc-switch handles account switching & quota cards; glm-quota-hud puts quota into an
+always-visible status bar — together they form a complete workflow.
 
 ```bash
 python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli --refresh
