@@ -56,34 +56,30 @@ MIT 协议随便用，star 一下让我知道帮到你了🙏
 
 | 图 | 内容 | 素材状态 |
 |---|---|---|
-| 图1 首图 | 大字报封面（cover_bg.png 叠字） | ✓ 底图已生成，待叠字 |
+| 图1 首图 | 大字报封面 | 待制作（叠字 / Excalidraw 择一） |
 | 图2 | 改造后状态栏效果（HUD 彩色进度条 + Context 条同框） | ✓ screenshots/claudehud-glm.jpg |
 | 图3 | CC Switch 账号管理端（双账号额度卡片，与本工具组成完整工作流） | ✓ screenshots/cc-switch-glm.jpg |
-| 图4（可选） | 安装三步教程卡（tutorial_bg.png 叠字） | ✓ 底图已生成，待叠字 |
+| 图4（可选） | 安装三步教程卡 | 待制作 |
 
 > 图2/图3 已实测：分辨率清晰、彩色额度数字高亮突出，信息层级好。
 >
-> 后续迭代备选：Excalidraw 手绘风做首图/教程卡（文字零乱码、配色可控，本地有 excalidraw-diagram skill），
-> CogView 底图+叠字方案已完成验证，两者按效果择优。
+> 后续迭代：首图/教程卡优先 Excalidraw 手绘风（文字零乱码、配色可控，本地有 excalidraw-diagram skill）。
 
 ## 配图素材（已生成，CogView-4 实测）
 
-> 实测结论：CogView-4 画中文必乱码（「状态改当」级别），已改用
-> **无文字背景 + 设计工具叠字**的专业工作流。背景图已生成：
->
-> - `screenshots/cover_bg.png` — 首图底图（上半幅留白叠标题，下半部进度条元素）
-> - `screenshots/tutorial_bg.png` — 教程卡底图（三区块+箭头连接结构）
+> 实测结论：CogView-4 画中文必乱码（「状态改当」级别）；无文字底图也未达预期（已删）。
+> 首图/教程卡改为 **Excalidraw 手绘风**（文字零乱码、配色精确可控）或 Keynote/Canva 模板制作。
 
-### 叠字指南（Keynote/PPT/Canva 任一，5 分钟）
+### 内容规格（制作时照此填充）
 
-cover_bg.png 叠加：
-- 主标题（上半幅居中）：Claude Code 状态栏改造！— 苹方粗体 64pt 白色
-- 副标题：GLM 额度一眼看清 — 32pt 紫 #CBA6F7
-- 进度条上方小字（可选）：5h 40% -3:55 — 等宽字体 20pt 绿 #A6E3A1
+首图：
+- 主标题：Claude Code 状态栏改造！（白色粗体，最大字）
+- 副标题：GLM 额度一眼看清（紫 #CBA6F7）
+- 视觉元素：彩色进度条 + 分档色点（绿黄红）
 
-tutorial_bg.png 叠加：
-- 顶部标题：3 步安装 — 白色粗体 48pt
-- 三区块文字：① git clone 克隆仓库 / ② bash install.sh 一键安装 / ③ 配置 token 环境变量
+教程卡：
+- 标题：3 步安装
+- 三步：① git clone 克隆仓库 / ② bash install.sh 一键安装 / ③ 配置 token 环境变量
 - 底部小字：零依赖 · 纯 Python · 开源 MIT
 
 ### 无文字版生图 Prompt（需重出图时用）
