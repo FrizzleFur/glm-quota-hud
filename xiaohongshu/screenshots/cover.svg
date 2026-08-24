@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+<rect width="768" height="1024" fill="#181825"/>
+<rect x="64" y="80" width="640" height="864" rx="18" fill="none" stroke="#45475a" stroke-width="2.5"/>
+<circle cx="98" cy="114" r="8" fill="#f38ba8"/>
+<circle cx="128" cy="114" r="8" fill="#f9e2af"/>
+<circle cx="158" cy="114" r="8" fill="#a6e3a1"/>
+<line x1="80" y1="138" x2="688" y2="138" stroke="#45475a" stroke-width="2"/>
+<text x="233" y="250" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="50" font-weight="700" fill="#cdd6f4">Claude Code</text>
+<text x="186" y="336" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="66" font-weight="800" fill="#cba6f7">状态栏改造！</text>
+<text x="261" y="398" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="30" fill="#a6e3a1">GLM 额度一眼看清</text>
+<line x1="150" y1="440" x2="618" y2="440" stroke="#45475a" stroke-width="1.5" stroke-dasharray="6 6"/>
+<rect x="104" y="488" width="560" height="68" rx="10" fill="#11111b"/>
+<text x="124" y="532" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#f9e2af" font-weight="600">V3 5h</text>
+<rect x="240" y="510" width="260" height="24" rx="7" fill="#45475a"/>
+<rect x="240" y="510" width="104" height="24" rx="7" fill="#a6e3a1"/>
+<text x="516" y="532" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#a6e3a1" font-weight="700">40% -3:55</text>
+<rect x="104" y="568" width="560" height="68" rx="10" fill="#11111b"/>
+<text x="124" y="612" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#f9e2af" font-weight="600">周池</text>
+<rect x="240" y="590" width="260" height="24" rx="7" fill="#45475a"/>
+<rect x="240" y="590" width="86" height="24" rx="7" fill="#a6e3a1"/>
+<text x="516" y="612" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#a6e3a1" font-weight="700">29% -4d</text>
+<circle cx="200" cy="696" r="10" fill="#a6e3a1"/><circle cx="330" cy="696" r="10" fill="#f9e2af"/><circle cx="460" cy="696" r="10" fill="#f38ba8"/>
+<text x="220" y="704" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">&lt;70% 绿</text>
+<text x="350" y="704" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">70-85% 黄</text>
+<text x="480" y="704" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">≥85% 红</text>
+<text x="150" y="780" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="25" fill="#cdd6f4" font-weight="600">双账号并行</text>
+<text x="350" y="780" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="25" fill="#cdd6f4" font-weight="600">精确倒计时</text>
+<text x="520" y="780" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="25" fill="#cdd6f4" font-weight="600">配合 CC Switch</text>
+<text x="201" y="896" font-family="Menlo, monospace" font-size="19" fill="#6c7086">github.com/FrizzleFur/glm-quota-hud</text>
+</svg>

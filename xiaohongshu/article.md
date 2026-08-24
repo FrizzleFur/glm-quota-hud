@@ -56,31 +56,28 @@ MIT 协议随便用，star 一下让我知道帮到你了🙏
 
 | 图 | 内容 | 素材状态 |
 |---|---|---|
-| 图1 首图 | 大字报封面 | 待制作（叠字 / Excalidraw 择一） |
+| 图1 首图 | SVG 生成（cover.svg → cover.png 1536×2048） | ✓ 完成 |
 | 图2 | 改造后状态栏效果（HUD 彩色进度条 + Context 条同框） | ✓ screenshots/claudehud-glm.jpg |
 | 图3 | CC Switch 账号管理端（双账号额度卡片，与本工具组成完整工作流） | ✓ screenshots/cc-switch-glm.jpg |
-| 图4（可选） | 安装三步教程卡 | 待制作 |
+| 图4 教程卡 | SVG 生成（tutorial.svg → tutorial.png 1536×2048） | ✓ 完成 |
 
 > 图2/图3 已实测：分辨率清晰、彩色额度数字高亮突出，信息层级好。
 >
-> 后续迭代：首图/教程卡优先 Excalidraw 手绘风（文字零乱码、配色可控，本地有 excalidraw-diagram skill）。
+> 重渲染命令：rsvg-convert -w 1536 cover.svg -o cover.png（改 SVG 后秒级重出图）
 
 ## 配图素材（已生成，CogView-4 实测）
 
-> 实测结论：CogView-4 画中文必乱码（「状态改当」级别）；无文字底图也未达预期（已删）。
-> 首图/教程卡改为 **Excalidraw 手绘风**（文字零乱码、配色精确可控）或 Keynote/Canva 模板制作。
+> 最终工作流：**手写 SVG + rsvg-convert 渲染 2x PNG**（文字真实渲染零乱码、Catppuccin 色值精确、
+> SVG 即源文件可随时改字重渲）。CogView 生图两条路实测均不达预期已弃用。
 
-### 内容规格（制作时照此填充）
+### 发布物料清单（全部就绪）
 
-首图：
-- 主标题：Claude Code 状态栏改造！（白色粗体，最大字）
-- 副标题：GLM 额度一眼看清（紫 #CBA6F7）
-- 视觉元素：彩色进度条 + 分档色点（绿黄红）
-
-教程卡：
-- 标题：3 步安装
-- 三步：① git clone 克隆仓库 / ② bash install.sh 一键安装 / ③ 配置 token 环境变量
-- 底部小字：零依赖 · 纯 Python · 开源 MIT
+- [x] 正文 + 3 候选标题 + 10 tag（见上）
+- [x] 图1 cover.png（SVG 首图）
+- [x] 图2 claudehud-glm.jpg（HUD 实测）
+- [x] 图3 cc-switch-glm.jpg（CC Switch 实测）
+- [x] 图4 tutorial.png（SVG 教程卡）
+- [x] 发布策略（plan.html：21-23 点 / 链接置顶评论 / A/B 标题）
 
 ### 无文字版生图 Prompt（需重出图时用）
 

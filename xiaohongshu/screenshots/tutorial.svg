@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+<rect width="768" height="1024" fill="#1e1e2e"/>
+<text x="265" y="150" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="58" font-weight="800" fill="#cdd6f4">3 步安装</text>
+<text x="188" y="196" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#9399b4">5 分钟接入 · Claude Code 状态栏</text>
+<rect x="120" y="264" width="528" height="150" rx="16" fill="#313244" stroke="#45475a" stroke-width="2"/>
+<circle cx="188" cy="339" r="30" fill="none" stroke="#cba6f7" stroke-width="3"/>
+<text x="178" y="350" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="30" font-weight="800" fill="#cba6f7">1</text>
+<text x="248" y="330" font-family="Menlo, PingFang SC, Hiragino Sans GB, sans-serif" font-size="29" font-weight="700" fill="#cdd6f4">git clone</text>
+<text x="248" y="370" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">克隆仓库到本地</text>
+<rect x="120" y="494" width="528" height="150" rx="16" fill="#313244" stroke="#45475a" stroke-width="2"/>
+<circle cx="188" cy="569" r="30" fill="none" stroke="#cba6f7" stroke-width="3"/>
+<text x="178" y="580" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="30" font-weight="800" fill="#cba6f7">2</text>
+<text x="248" y="560" font-family="Menlo, PingFang SC, Hiragino Sans GB, sans-serif" font-size="29" font-weight="700" fill="#cdd6f4">bash install.sh</text>
+<text x="248" y="600" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">一键安装 + 自动打补丁</text>
+<rect x="120" y="724" width="528" height="150" rx="16" fill="#313244" stroke="#45475a" stroke-width="2"/>
+<circle cx="188" cy="799" r="30" fill="none" stroke="#cba6f7" stroke-width="3"/>
+<text x="178" y="810" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="30" font-weight="800" fill="#cba6f7">3</text>
+<text x="248" y="790" font-family="Menlo, PingFang SC, Hiragino Sans GB, sans-serif" font-size="29" font-weight="700" fill="#cdd6f4">配置 token</text>
+<text x="248" y="830" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="21" fill="#9399b4">写入 ~/.zshrc.secrets</text>
+<path d="M 384 414 L 384 484" stroke="#a6e3a1" stroke-width="3.5" marker-end="url(#ar)"/>
+<path d="M 384 644 L 384 714" stroke="#a6e3a1" stroke-width="3.5" marker-end="url(#ar)"/>
+<defs><marker id="ar" markerWidth="10" markerHeight="10" refX="5" refY="8" orient="0"><path d="M0,0 L10,0 L5,9 z" fill="#a6e3a1"/></marker></defs>
+<text x="200" y="950" font-family="PingFang SC, Hiragino Sans GB, sans-serif" font-size="24" fill="#a6e3a1" font-weight="600">零依赖 · 纯 Python · 开源 MIT</text>
+</svg>
