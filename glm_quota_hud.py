@@ -19,6 +19,7 @@ Version: 1.0.0 | License: MIT
 """
 
 import argparse
+import datetime
 import json
 import os
 import time
@@ -78,6 +79,7 @@ def hex_to_sgr(hexstr):
 BOLD = "\x1b[1m"
 NO_DIM = "\x1b[22m"          # 解除外层 DIM 压暗（HUD 里 label() 整块包 DIM）
 RESET_DIM = "\x1b[0m\x1b[2m"  # reset 后补 dim，恢复整块基调
+PEAK_GRAY = "\x1b[38;2;108;112;134m"   # overlay0，高峰标注灰（SGR 白名单透传任意 38;2）
 
 
 def dyn_color(pct, sgr, thresholds):
@@ -172,17 +174,28 @@ def save_cache(accounts, current_label):
 
 # ---------- 探测 ----------
 
-def fetch_api(api_key, base, endpoint):
-    req = urllib.request.Request(
-        f"{base}{endpoint}",
-        headers={"Authorization": api_key, "Content-Type": "application/json",
-                 "Accept-Language": "en-US,en"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except (urllib.error.URLError, OSError, json.JSONDecodeError):
-        return None
+def fetch_api(api_key, jwt, base, endpoint):
+    """鉴权链：API key 优先（服务恢复后继续可用），空 body 时回退该账号的
+    网页登录 JWT。2026-08-24 15:32-16:2x 智谱 monitor 接口曾对 API key 请求
+    返回 200 空 body（非 401，约 1 小时后自愈）——JWT 查询不受影响，
+    作为故障期保险。JWT 从已登录浏览器 cookie bigmodel_token_production
+    提取（HS512，payload 无 exp，长效但可被吊销）。"""
+    for auth in (api_key, jwt):
+        if not auth:
+            continue
+        req = urllib.request.Request(
+            f"{base}{endpoint}",
+            headers={"Authorization": auth, "Content-Type": "application/json",
+                     "Accept-Language": "en-US,en"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
+                body = resp.read().decode("utf-8").strip()
+            if body:  # 200 空 body 是 monitor 故障特征，视为鉴权失败继续下一跳
+                return json.loads(body)
+        except (urllib.error.URLError, OSError, json.JSONDecodeError):
+            continue
+    return None
 
 
 def probe_all(provider_cfg, force=False):
@@ -203,8 +216,15 @@ def probe_all(provider_cfg, force=False):
             seen.add(t)
             uniq.append((t, is_s, acc))
 
+    # JWT 回退映射：账号 token 环境变量名 *_TOKEN → 同名 *_JWT（GLM_V1_TOKEN →
+    # GLM_V1_JWT），与 token 同途径走环境变量；session token 无账号归属，无 JWT
+    def jwt_of(acc):
+        if not acc:
+            return ""
+        return os.environ.get(acc["token_env"].replace("_TOKEN", "_JWT"), "")
+
     with ThreadPoolExecutor(max_workers=max(len(uniq), 1)) as pool:
-        results = list(pool.map(lambda x: fetch_api(x[0], base, endpoint), uniq))
+        results = list(pool.map(lambda x: fetch_api(x[0], jwt_of(x[2]), base, endpoint), uniq))
 
     accounts, current = {}, ""
     for (t, is_s, acc), fetched in zip(uniq, results):
@@ -226,6 +246,15 @@ def probe_all(provider_cfg, force=False):
 
 
 # ---------- HUD 模式 ----------
+
+def peak_suffix():
+    """高峰时段（周一~五 14:00-18:00）浅灰轻标注：此时段模型消耗按 1x 积分抵扣，
+    非高峰 0.5x。仅高峰中显示（提醒消耗翻倍），平时静默省字符。"""
+    now = datetime.datetime.now()
+    if now.weekday() < 5 and 14 <= now.hour < 18:
+        return f"{PEAK_GRAY} 峰14-18{RESET_DIM}"
+    return ""
+
 
 def render_hud(accounts, current, sgr, thresholds, bar_w):
     parts = []
@@ -323,7 +352,7 @@ def main():
         shown = {current: accounts[current]} if current in accounts else accounts
         bar_w = d["bar_width_single"]
     label = render_hud(shown, current, cfg["sgr"], d["thresholds"], bar_w) or "GLM: fetch failed"
-    print(json.dumps({"label": label}))
+    print(json.dumps({"label": label + peak_suffix()}))
 
 
 if __name__ == "__main__":

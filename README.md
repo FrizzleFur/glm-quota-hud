@@ -106,6 +106,13 @@ bash ~/.claude/plugins/claude-hud/patch-sgr.sh   # claude-hud 升级后再跑一
 
 不想要彩色？不打补丁即可，脚本输出会退化为纯文本（功能不受影响）。
 
+## monitor 接口故障的 JWT 回退（2026-08-24 经验）
+
+2026-08-24 15:32-16:2x 智谱 monitor 接口对 API key 返回 200 空 body（约 1 小时后自愈）。
+脚本内置回退链：API key 失败（空响应）时自动改用网页登录 JWT 查询。
+配置：浏览器登录 open.bigmodel.cn → F12 Application→Cookies 复制 `bigmodel_token_production` 值 →
+`export GLM_V1_JWT="..."`（或 GLM_V3_JWT）进 ~/.zshrc.secrets。JWT 无 exp 字段较长效，失效重登重提。
+
 ## FAQ
 
 **Q: 为什么我的 V3 积分账号有时没有 5h 窗口显示？**
