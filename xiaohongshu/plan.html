@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>glm-quota-hud · 小红书推广方案</title>
+<style>
+  :root{--bg:#181825;--card:#1e1e2e;--text:#cdd6f4;--dim:#6c7086;--mauve:#cba6f7;--green:#a6e3a1;--red:#f38ba8;--slot:#45475a;--blue:#89b4fa}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif;line-height:1.7;padding:40px 20px}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:28px;margin-bottom:4px}
+  h1 .badge{font-size:13px;background:var(--mauve);color:#11111b;border-radius:6px;padding:2px 10px;vertical-align:middle;margin-left:8px;font-weight:600}
+  .sub{color:var(--dim);margin-bottom:32px}
+  h2{font-size:18px;color:var(--mauve);margin:36px 0 14px;border-left:3px solid var(--mauve);padding-left:10px}
+  .card{background:var(--card);border-radius:12px;padding:20px 24px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #313244}
+  th{color:var(--dim);font-weight:500}
+  .bar{display:inline-block;color:var(--green)}
+  .bar .slot{color:var(--slot)}
+  .pill{display:inline-block;border-radius:99px;padding:1px 10px;font-size:12px;margin:2px}
+  .p-g{background:rgba(166,227,161,.15);color:var(--green)}
+  .p-m{background:rgba(203,166,247,.15);color:var(--mauve)}
+  .p-r{background:rgba(243,139,168,.15);color:var(--red)}
+  .p-b{background:rgba(137,180,250,.15);color:var(--blue)}
+  .term{background:#11111b;border-radius:10px;padding:14px 18px;font-family:"SF Mono",Menlo,monospace;font-size:13px;overflow-x:auto;white-space:pre;margin:10px 0}
+  .g{color:var(--green)}.m{color:var(--mauve)}.r{color:var(--red)}.d{color:var(--dim)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .num{font-size:26px;font-weight:700;color:var(--mauve)}
+  .num small{font-size:13px;color:var(--dim);font-weight:400}
+  .step{display:flex;gap:14px;margin-bottom:14px}
+  .step .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--mauve);color:#11111b;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+  .flow .arr{color:var(--dim)}
+  footer{margin-top:40px;color:var(--dim);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>glm-quota-hud 小红书推广方案 <span class="badge">草稿 v1</span></h1>
+<div class="sub">GLM Coding Plan 用量监控 · Claude HUD / CLI 双模式 · 2026-08-24</div>
+
+<!-- 一句话定位 -->
+<div class="card">
+  <b>一句话卖点：</b>让 Claude Code 状态栏一眼看清 GLM 额度 —— 彩色进度条 + 倒计时，配合 CC Switch 切账号不踩空窗口。
+</div>
+
+<!-- 市场数据 -->
+<h2>市场摸底（为什么是现在）</h2>
+<div class="card">
+  <table>
+    <tr><th>信号</th><th>数据</th><th>含义</th></tr>
+    <tr><td>claude-hud 生态</td><td class="num">27.6k <small>★</small></td><td>statusline 美化是成熟大市场</td></tr>
+    <tr><td>cc-switch 生态</td><td class="num">129k <small>★</small></td><td>多 provider 多账号切换是主流工作流</td></tr>
+    <tr><td>GLM quota 同类工具</td><td class="num">≤27 <small>★</small></td><td>赛道刚起步，无人跑出</td></tr>
+    <tr><td>同类新建仓库</td><td class="num">5+ <small>个/近3天</small></td><td>需求正在爆发窗口期，先发优势明显</td></tr>
+  </table>
+</div>
+
+<!-- 差异化 -->
+<h2>差异化矩阵</h2>
+<div class="card">
+  <table>
+    <tr><th>能力</th><th>竞品（statusline 插件）</th><th>glm-quota-hud</th></tr>
+    <tr><td>三池语义（5h/周/月）</td><td>多显示总额</td><td><span class="pill p-g">逐池识别</span> 含窗口未激活隐藏规则</td></tr>
+    <tr><td>双账号并行</td><td>单账号</td><td><span class="pill p-g">多账号 + 当前会话标记</span></td></tr>
+    <tr><td>extra 段彩色</td><td>灰色（sanitize 剥 ANSI）</td><td><span class="pill p-m">SGR 白名单补丁</span> 独一份</td></tr>
+    <tr><td>切换账号配合</td><td>无</td><td><span class="pill p-b">CLI 直读模式</span> 对接 CC Switch 场景</td></tr>
+    <tr><td>依赖</td><td>Node/构建</td><td><span class="pill p-g">零依赖单文件 Python</span></td></tr>
+  </table>
+</div>
+
+<!-- 效果预览 -->
+<h2>效果预览</h2>
+<div class="term"><span class="d">改造后状态栏（HUD 模式）:</span>
+V1 5h <span class="g">░░░░░</span> 1%-3:55 · V3 5h <span class="g">██░░░</span> <b class="g">40%</b>-3:56 <b class="g">周29%</b>-4d
+
+<span class="d">CLI 直读（CC Switch 配合）:</span>
+<span class="m">◆ GLM Coding Plan 配额总览</span>  08-24 08:17
+──────────────────────────────────
+<b>V1</b> (5h窗口套餐)
+  5h  <span class="g">░░░░░░░░░░░░░░░░░░░░</span> <b class="g">  1%</b>  4:55 后重置
+  mcp <span class="g">░░░░░░░░░░░░░░░░░░░░</span> <b class="g">  1%</b>  7d 后（08-31 10:32）重置
+<b>V3</b> (积分套餐) <span class="m">← 当前会话</span>
+  周池 <span class="g">███████░░░░░░░░░░░░░</span> <b class="g"> 33%</b>  3d 后（08-27 17:00）重置</div>
+
+<!-- 发布策略 -->
+<h2>发布策略</h2>
+<div class="card">
+  <div class="flow">
+    <b>受众</b> <span class="arr">→</span> <span class="pill p-m">GLM Coding Plan 用户</span> <span class="pill p-m">Claude Code 玩家</span> <span class="pill p-m">终端美化爱好者</span> <span class="pill p-m">CC Switch 用户</span>
+  </div>
+  <br>
+  <div class="step"><div class="n">1</div><div><b>发布时间</b>：工作日 21:00–23:00（开发者刷手机高峰）</div></div>
+  <div class="step"><div class="n">2</div><div><b>链接策略</b>：GitHub 地址放<b>置顶评论</b>（正文不放外链防限流）</div></div>
+  <div class="step"><div class="n">3</div><div><b>配图策略</b>：首图/教程卡用生图（视觉抓人），效果对比用<b>真实终端截图</b>（教程可信度）</div></div>
+  <div class="step"><div class="n">4</div><div><b>互动钩子</b>：结尾「star 一下让我知道帮到你了」+ 评论区答疑承诺</div></div>
+  <div class="step"><div class="n">5</div><div><b>标题 A/B</b>：三个候选标题（见 article.md），首发用第 1 个（痛点直给）</div></div>
+</div>
+
+<!-- 配图 -->
+<h2>配图规划（4 张）</h2>
+<div class="card">
+  <table>
+    <tr><th>#</th><th>内容</th><th>方式</th><th>要点</th></tr>
+    <tr><td>图1</td><td>大字报封面</td><td><span class="pill p-m">生图</span></td><td>3:4 竖版、大字、进度条元素</td></tr>
+    <tr><td>图2</td><td>状态栏前后对比</td><td><span class="pill p-g">真实截图</span></td><td>同宽度窗口拼接，对比冲击</td></tr>
+    <tr><td>图3</td><td>CLI 总览+CC Switch</td><td><span class="pill p-g">真实截图</span></td><td>展示「← 当前会话」标记</td></tr>
+    <tr><td>图4</td><td>安装三步卡</td><td><span class="pill p-m">生图</span></td><td>步骤编号+图标，Catppuccin 配色</td></tr>
+  </table>
+  <div class="d" style="font-size:13px;margin-top:8px">生图 prompt 全文见 xiaohongshu/article.md（即梦/可灵/Midjourney 均可用）</div>
+</div>
+
+<footer>glm-quota-hud · github.com/FrizzleFur/glm-quota-hud · MIT</footer>
+</div>
+</body>
+</html>
