@@ -1,0 +1,40 @@
+{
+  "_comment": "复制为 providers.json 后按需修改；token 一律走环境变量（推荐 ~/.zshrc.secrets），永不写入本文件",
+  "providers": {
+    "glm": {
+      "name": "GLM Coding Plan",
+      "api_base": "https://open.bigmodel.cn",
+      "endpoint": "/api/monitor/usage/quota/limit",
+      "accounts": [
+        {
+          "label": "V1",
+          "display": "V1 · 5h窗口套餐",
+          "token_env": "GLM_V1_TOKEN",
+          "plan": "window"
+        },
+        {
+          "label": "V3",
+          "display": "V3 · 积分套餐",
+          "token_env": "GLM_V3_TOKEN",
+          "plan": "credit"
+        }
+      ],
+      "session_token_env": "ANTHROPIC_AUTH_TOKEN"
+    }
+  },
+  "display": {
+    "bar_width_single": 10,
+    "bar_width_multi": 5,
+    "thresholds": {
+      "yellow": 70,
+      "red": 85
+    },
+    "colors": {
+      "green": "#A6E3A1",
+      "yellow": "#F9E2AF",
+      "red": "#F38BA8",
+      "purple": "#CBA6F7",
+      "slot": "#45475A"
+    }
+  }
+}
