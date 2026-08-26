@@ -134,6 +134,23 @@ python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli
 
 HUD 显示模式：`GLM_HUD_SHOW=all` 双账号同显（默认 `current` 只显示当前会话账号）。
 
+## 峰谷时段通知（crontab）
+
+状态栏的 `⚡峰` / `⚡谷` 只标注当前时段，**边界前后的行动提醒交给 crontab**——工作日两条系统通知，峰段开始前 10 分钟提醒挪任务、谷段开始时提示适合批量：
+
+![峰谷通知](assets/notify-peak.png)
+
+`crontab -e` 加入（文案可自定义）:
+
+```cron
+# 13:50 峰段 10 分钟后开始（14:00-18:00 按 1 倍积分），重任务请安排至 18:00 后
+50 13 * * 1-5 /usr/bin/osascript -e 'display notification "峰段 10 分钟后开始（14:00-18:00 按 1 倍积分），重任务请安排至 18:00 后" with title "GLM 峰谷提醒"'
+# 17:55 谷段开始（0.5 倍积分），适合批量与深度任务
+55 17 * * 1-5 /usr/bin/osascript -e 'display notification "谷段开始（0.5 倍积分），适合批量与深度任务" with title "GLM 峰谷提醒"'
+```
+
+> 通知分工：**crontab 管时段边界**（固定时刻，积分倍率切换前提醒安排任务）；**脚本内置预警管阈值**（任一池 ≥ 90% 事件驱动弹一次，latch 去重、回落自动复位，见特性列表）。两者均只依赖 macOS 自带 `osascript`，零额外依赖。
+
 ## 彩色原理（SGR 白名单补丁）
 
 claude-hud 对 `--extra-cmd` 输出做 sanitize，**剥离一切 ANSI 转义**（防终端注入的安全设计），
