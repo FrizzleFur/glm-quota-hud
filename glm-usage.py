@@ -16,7 +16,7 @@ token position, so it survives provider switching):
              nextResetTime and is not displayed). The 5h window and the
              weekly pool are told apart by time-to-reset (< 6h = window)
 
-Format: "V1 ⚡谷5h ██░░░░░░░░ 1%↻4:52  🛠mcp8%  📈9.0/h 余99%≈11.0h ✅"
+Format: "V1 ⚡谷5h ██░░░░░░░░ 1%↻4:52  🛠️ mcp8%  📈9.0/h 余99%≈11.0h ✅"
         "V3 ⚡谷5h █░░░░ 7%↻4:33  📅周23%↻4d→08/30  🗓5.3/d 余77%≈14.5d"
 (bar: purple, turns red at 85%; single-account mode widens to 10 cells;
  forecast segments 📈/🗓 need dist patch MAX_LABEL_LENGTH=150 — patch-sgr.sh)
@@ -414,10 +414,13 @@ def _warn_suffix(key, info):
 
 
 def _render_5h(icon, pct, w, suffix, clock):
-    """⚡谷5h/🔥峰5h 统一渲染（V1 TOKENS_LIMIT 与 V3 5h 积分窗口共用样式）。"""
+    """⚡谷5h/🔥峰5h 统一渲染（V1 TOKENS_LIMIT 与 V3 5h 积分窗口共用样式）。
+    ⚡ 固定浅黄（闪电语义色，不随用量分档）；峰谷字样/读数仍走 dyn_color，
+    预警 🔥 保持红。"""
     color = dyn_color(pct)
+    icon_color = RED if icon == "🔥" else YELLOW
     dash = f" ↻{clock}" if clock else ""
-    return f"{NO_DIM}{color}{icon}{peak_word()}5h {bar(pct, w)}{BOLD}{color}{pct}%{suffix}{dash}{RESET_DIM}"
+    return f"{NO_DIM}{icon_color}{icon}{color}{peak_word()}5h {bar(pct, w)}{BOLD}{color}{pct}%{suffix}{dash}{RESET_DIM}"
 
 
 def _forecast_seg(key, info):
@@ -448,13 +451,14 @@ def _forecast_seg(key, info):
 
 
 def format_usage(data, bar_width=10, account="", forecast=None, compact=False):
-    """V1: ⚡谷5h bar + 🛠mcp%; V3: ⚡谷5h bar + 📅周%%↻Nd→MM/DD。
+    """V1: ⚡谷5h bar + 🛠️ mcp%; V3: ⚡谷5h bar + 📅周%%↻Nd→MM/DD。
     预警池（pct >= GLM_HUD_WARN，默认 90）：图标换 🔥、追加 !ETA 后缀、
     bar 收窄 5 格释放预算。📈/🗓 预测段（速率/余量/还能用/✅⚠️）随各池
     追加——依赖 dist 补丁 MAX_LABEL_LENGTH=150（patch-sgr.sh v3）。
     compact（show=all 双账号）：非预警池 bar 3 格且去 ↻ 时钟、预测段
     省略，预警池信息优先。forecast = {pool_key: info} 由 main 注入（缓存
-    路径亦有，rate 取持久化 history）。emoji UTF-16 计数：⚡=1 ↻=1 📅🛠🔥=2。"""
+    路径亦有，rate 取持久化 history）。emoji UTF-16 计数：⚡=1 ↻=1 📅🔥=2
+    🛠️=3（🛠2+VS16）。"""
     forecast = forecast or {}
     limits = data.get("data", {}).get("limits", [])
     five_h = ""
@@ -479,11 +483,16 @@ def format_usage(data, bar_width=10, account="", forecast=None, compact=False):
             )
         elif lim_type == "TIME_LIMIT":
             # mcp 周池始终显示（用户需要随时看到调用剩余）；预警态红色并
-            # 压缩去 mcp 字样省预算（平时 🛠mcp8% = 7 单元，预警 🛠91% = 5）
+            # 压缩去 mcp 字样省预算（平时 🛠️ mcp8% = 9 单元，预警 🛠️ 91% = 7）。
+            # 🛠️ 带 VS16 + 空格：🛠 默认文本呈现（1 格进位、约 2 格字形），
+            # 溢出会吃掉空格致视觉紧贴（同 ⚠️ 机制，VS16 强制双宽进位后
+            # 空格才是真间隙）
             if warn:
-                mcp = f"{NO_DIM}{RED}🛠{pct}%{suffix}{RESET_DIM}"
+                mcp = f"{NO_DIM}{RED}🛠️ {pct}%{suffix}{RESET_DIM}"
             else:
-                mcp = f"🛠mcp{pct}%"
+                # NO_DIM 解除外层 DIM 压暗（否则整段发淡），读数走 dyn_color
+                # 与 5h 池同款分档但不加粗——主池 BOLD、辅池常规的层级差
+                mcp = f"{NO_DIM}{dyn_color(pct)}🛠️ mcp{pct}%{RESET_DIM}"
         elif lim_type == "CREDIT_LIMIT" and lim.get("nextResetTime"):
             # CREDIT_LIMIT 按周期分两种：5h 积分窗口（API number=5/unit=3，与 V1 的
             # TOKENS_LIMIT 同步开窗）按 5h 样式加粗；周积分池（number=1/unit=6）显示周。
