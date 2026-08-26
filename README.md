@@ -8,9 +8,11 @@
 
 Claude Code 状态栏（GLM 额度段与 Context 进度条同框，用量分档变色）:
 
-![状态栏效果](assets/hud-glm.jpg)
+![V3 形态](assets/hud-glm.jpg)
 
-> 峰谷内联 + 速率预测 + 耗尽预报形态（各字段含义见下方解释）
+![V1 形态](assets/hud-glm-v1.png)
+
+> 峰谷内联 + 速率预测 + 耗尽预报形态（上：V3 积分制；下：V1 5h 窗口 + MCP 周池。各字段含义见下方解释）
 
 `glm-usage.py` 部署版——峰谷内联 + 速率预测 + 耗尽预报（每账号单行，V3 积分制 / V1 5h 窗口 + MCP 周池）:
 
