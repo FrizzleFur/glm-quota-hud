@@ -65,23 +65,6 @@ open(p, 'w').write(src)
 print("✓ extra-cmd.js 长度补丁完成")
 PYEOF
 
-  # ---- PATCH(2026-08-26-v3): label 预算扩容 50→150（独立幂等） ----
-  # glm-usage.py 追加 📈/🗓 预测段（速率/余量/还能用/结论）需 ~60-100 单元，
-  # 50 上限装不下。render 层无 extraLabel 截断（已核实 0.8.0），仅此一处。
-  python3 - "${HUD_BIN}dist/extra-cmd.js" << 'PYEOF'
-import sys
-p = sys.argv[1]
-src = open(p).read()
-OLD = "const MAX_LABEL_LENGTH = 50;"
-NEW = "const MAX_LABEL_LENGTH = 150; // PATCH(2026-08-26-v3): 预测段扩容（patch-sgr.sh）"
-if "PATCH(2026-08-26-v3)" in src:
-    print("✓ MAX_LABEL_LENGTH 扩容已是最新，跳过"); sys.exit(0)
-assert OLD in src, "MAX_LABEL_LENGTH = 50 未匹配（结构可能又变，请人工核对）"
-src = src.replace(OLD, NEW)
-open(p, 'w').write(src)
-print("✓ extra-cmd.js label 预算 50→150 完成")
-PYEOF
-
   HUD_TARGET="${HUD_BIN}dist/utils/sanitize.js" node --input-type=module -e "
 const { sanitizeDisplayText } = await import(process.env.HUD_TARGET);
 const t = sanitizeDisplayText('\x1b[38;2;1;2;3mA\x1b[0m\x1b[1m\x1b[22mB\x1b]0;x\x07C');
@@ -142,3 +125,22 @@ const t = sanitize('\x1b[38;2;1;2;3mA\x1b[0m\x1b[2mB\x1b]0;x\x07C');
 t.includes('38;2;1;2;3m') && !t.includes('x\x07') ? console.log('✓ 验证通过') : (console.log('✗ 验证失败'), process.exit(1));
 "
 fi
+
+# ---- PATCH(2026-08-26-v3): label 预算扩容 50→150（独立幂等，两版本路径通用） ----
+# glm-usage.py 追加 📈/🗓 预测段（速率/余量/还能用/结论）需 ~60-100 单元，
+# 50 上限装不下。render 层无 extraLabel 截断（已核实 0.8.0），仅此一处。
+# 2026-08-27 修复: 此前该块只在 0.8.0+ 分支内，≤0.3.0 旧路径（如 0.0.12）
+# 走 else 分支漏打扩容，预测段被 50 上限截断——移到 fi 后对两路径统一执行。
+python3 - "${HUD_BIN}dist/extra-cmd.js" << 'PYEOF'
+import sys
+p = sys.argv[1]
+src = open(p).read()
+OLD = "const MAX_LABEL_LENGTH = 50;"
+NEW = "const MAX_LABEL_LENGTH = 150; // PATCH(2026-08-26-v3): 预测段扩容（patch-sgr.sh）"
+if "PATCH(2026-08-26-v3)" in src:
+    print("✓ MAX_LABEL_LENGTH 扩容已是最新，跳过"); sys.exit(0)
+assert OLD in src, "MAX_LABEL_LENGTH = 50 未匹配（结构可能又变，请人工核对）"
+src = src.replace(OLD, NEW)
+open(p, 'w').write(src)
+print("✓ extra-cmd.js label 预算 50→150 完成")
+PYEOF
