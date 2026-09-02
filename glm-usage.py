@@ -450,6 +450,26 @@ def _forecast_seg(key, info):
     return f"{NO_DIM}{FORECAST_GRAY}🗓 {rate * 24:.1f}%/d 余{remain}%≈{eta_s / 86400:.1f}d {mark}{RESET_DIM}"
 
 
+def _render_mcp_seg(account, lim, forecast):
+    """🛠️ mcp 段单池渲染（TIME_LIMIT 专属）。抽自 format_usage 供两处共用：
+    V1 自身渲染 + main 的跨账号补渲染（V3 积分制会话 API 不返回该池，但
+    MCP 调用（search-prime/zread 等）仍消耗 V1 周池——"mcp 周池始终显示"
+    原注释的账号维度延伸，2026-09-02）。
+    预警态红色并压缩去 mcp 字样省预算（平时 🛠️ mcp8% = 9 单元，预警
+    🛠️ 91% = 7）。🛠️ 带 VS16 + 空格：🛠 默认文本呈现（1 格进位、约 2 格
+    字形），溢出会吃掉空格致视觉紧贴（同 ⚠️ 机制，VS16 强制双宽进位后
+    空格才是真间隙）。NO_DIM 解除外层 DIM 压暗（否则整段发淡），读数走
+    dyn_color 与 5h 池同款分档但不加粗——主池 BOLD、辅池常规的层级差"""
+    pct = lim.get("percentage", 0)
+    key = pool_key(account, lim)
+    info = forecast.get(key) or {"pct": pct, "verdict": None, "eta": None}
+    warn = pct >= WARN_THRESHOLD
+    suffix = _warn_suffix(key, info) if warn else ""
+    if warn:
+        return f"{NO_DIM}{RED}🛠️ {pct}%{suffix}{RESET_DIM}"
+    return f"{NO_DIM}{dyn_color(pct)}🛠️ mcp{pct}%{RESET_DIM}"
+
+
 def format_usage(data, bar_width=10, account="", forecast=None, compact=False):
     """V1: ⚡谷5h bar + 🛠️ mcp%; V3: ⚡谷5h bar + 📅周%%↻Nd→MM/DD。
     预警池（pct >= GLM_HUD_WARN，默认 90）：图标换 🔥、追加 !ETA 后缀、
@@ -482,17 +502,9 @@ def format_usage(data, bar_width=10, account="", forecast=None, compact=False):
                 suffix, clock,
             )
         elif lim_type == "TIME_LIMIT":
-            # mcp 周池始终显示（用户需要随时看到调用剩余）；预警态红色并
-            # 压缩去 mcp 字样省预算（平时 🛠️ mcp8% = 9 单元，预警 🛠️ 91% = 7）。
-            # 🛠️ 带 VS16 + 空格：🛠 默认文本呈现（1 格进位、约 2 格字形），
-            # 溢出会吃掉空格致视觉紧贴（同 ⚠️ 机制，VS16 强制双宽进位后
-            # 空格才是真间隙）
-            if warn:
-                mcp = f"{NO_DIM}{RED}🛠️ {pct}%{suffix}{RESET_DIM}"
-            else:
-                # NO_DIM 解除外层 DIM 压暗（否则整段发淡），读数走 dyn_color
-                # 与 5h 池同款分档但不加粗——主池 BOLD、辅池常规的层级差
-                mcp = f"{NO_DIM}{dyn_color(pct)}🛠️ mcp{pct}%{RESET_DIM}"
+            # mcp 周池始终显示（用户需要随时看到调用剩余）；渲染细节与
+            # 预警态压缩策略见 _render_mcp_seg docstring
+            mcp = _render_mcp_seg(account, lim, forecast)
         elif lim_type == "CREDIT_LIMIT" and lim.get("nextResetTime"):
             # CREDIT_LIMIT 按周期分两种：5h 积分窗口（API number=5/unit=3，与 V1 的
             # TOKENS_LIMIT 同步开窗）按 5h 样式加粗；周积分池（number=1/unit=6）显示周。
@@ -603,6 +615,22 @@ def main():
         # （单账号 10 格与 Context 同宽，双账号 compact 模式 3 格控预算）
         display = name.replace("Glm5.3-", "")
         parts.append(f"{display} {format_usage(data, 10 if len(names) == 1 else 5, display, forecast, compact=(len(names) > 1))}{mark}")
+    # 跨账号补 MCP 段：MCP 周池（TIME_LIMIT）V1 套餐专属，V3（积分制）
+    # 会话 API 不返回该池，但 MCP 调用仍消耗 V1 周池——余量须始终可见。
+    # show=all / current=V1 时已随 V1 渲染，has_mcp 挡住不重复补。
+    has_mcp = any(
+        lim.get("type") == "TIME_LIMIT"
+        for name in names if data_map.get(name)
+        for lim in data_map[name].get("data", {}).get("limits", []))
+    if not has_mcp:
+        for name in sorted(data_map):
+            data = data_map.get(name) or {}
+            lim = next((l for l in data.get("data", {}).get("limits", [])
+                        if l.get("type") == "TIME_LIMIT"), None)
+            if lim:
+                parts.append(_render_mcp_seg(
+                    name.replace("Glm5.3-", ""), lim, forecast))
+                break
     if not parts:
         parts = ["GLM: fetch failed"]
     label = "·".join(parts)

@@ -49,6 +49,36 @@ open(p, 'w').write(src)
 print("✓ sanitize.js 补丁完成")
 PYEOF
 
+  # ---- PATCH(2026-09-02-v4): sanitize passthrough newline U+000A (idempotent, 0.8.0+ only) ----
+  # Enables two-line extra labels ("part1\npart2"): a single line can exceed
+  # terminal width and trailing segments get truncated with "...". The
+  # CONTROL_AND_BIDI_PATTERN covers U+0000-U+001F which strips \n (U+000A) --
+  # split the range to skip U+000A only. \r (U+000D) is still stripped (blocks
+  # CRLF double-line injection). CSI/OSC/bidi all still stripped.
+  # NOTE: the inline comment in NEW must sit AFTER the trailing ' +'
+  # concatenation operator, otherwise it comments out the operator and breaks
+  # the JS module (learned the hard way).
+  python3 - "${HUD_BIN}dist/utils/sanitize.js" << 'PYEOF'
+import sys
+p = sys.argv[1]
+src = open(p).read()
+if 'PATCH(2026-09-02-v4)' in src:
+    print("OK: sanitize newline patch already applied, skip"); sys.exit(0)
+
+OLD = "'\\\\u0000-\\\\u001F\\\\u007F-\\\\u009F'"
+NEW = "'\\\\u0000-\\\\u0009\\\\u000B-\\\\u001F\\\\u007F-\\\\u009F' +  // PATCH(2026-09-02-v4): keep newline (U+000A), still strip CR"
+assert OLD in src, "CONTROL_AND_BIDI_PATTERN range not found (sanitize layout may have changed, review manually)"
+src = src.replace(OLD, NEW)
+open(p, 'w').write(src)
+print("OK: sanitize.js newline passthrough patch applied")
+PYEOF
+
+  HUD_TARGET="${HUD_BIN}dist/utils/sanitize.js" node --input-type=module -e "
+const { sanitizeDisplayText } = await import(process.env.HUD_TARGET);
+const nl = sanitizeDisplayText('L1\nL2');
+(nl === 'L1\nL2') ? console.log('OK: newline passthrough verified') : (console.log('FAIL: ' + JSON.stringify(nl)), process.exit(1));
+"
+
   python3 - "${HUD_BIN}dist/extra-cmd.js" << 'PYEOF'
 import sys
 p = sys.argv[1]
