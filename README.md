@@ -4,6 +4,8 @@
 
 [English](README_EN.md) | 中文
 
+> 🔗 **FlowKit 生态**：多 agent 并行施工时额度烧得飞快——本工具把余量钉在状态栏，429 之前先看到。真机同框实拍见 [FlowKit README](https://github.com/FrizzleFur/flowkit)。
+
 ## 效果
 
 Claude Code 状态栏（GLM 额度段与 Context 进度条同框，用量分档变色）:

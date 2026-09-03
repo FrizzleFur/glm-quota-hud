@@ -4,6 +4,8 @@
 
 中文 | [中文文档](README.md)
 
+> 🔗 **FlowKit ecosystem**: parallel agents burn quota fast — this tool pins the headroom to your status bar so you see the 429 before it hits. See them side by side in the [FlowKit README](https://github.com/FrizzleFur/flowkit).
+
 ## What it looks like
 
 In the Claude Code status bar (GLM quota segment alongside the Context bar, usage-tiered colors):
