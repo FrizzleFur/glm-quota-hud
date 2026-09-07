@@ -16,6 +16,12 @@ Claude Code 状态栏（GLM 额度段与 Context 进度条同框，用量分档�
 
 > 峰谷内联 + 速率预测 + 耗尽预报形态（上：V3 积分制；下：V1 5h 窗口 + MCP 周池。各字段含义见下方解释）
 
+真机完整形态（2026-09-07）——GLM 额度段与内存监控、Context、工具活动同框：
+
+![完整状态栏实拍](assets/hud-glm-full.png)
+
+> extra 段三行收纳：GLM 额度段 / `MEM` 内存压力段 / `R:``M:` 复合段（物理内存条 + 占用 Top3 与四项细分合并单行）。下方 `配置计数 │ 工具活动` 为 claude-hud `mergeGroups` 合并行（`2 CLAUDE.md | 20 MCPs | 2 hooks │ ✓ Bash ×10 ...`）。
+
 `glm-usage.py` 部署版——峰谷内联 + 速率预测 + 耗尽预报（每账号单行，V3 积分制 / V1 5h 窗口 + MCP 周池）:
 
 ```
@@ -163,7 +169,9 @@ claude-hud 对 `--extra-cmd` 输出做 sanitize，**剥离一切 ANSI 转义**�
 
 v4 补丁（2026-09-02）在此基础上放行换行符 `\n`（U+000A）：extra label 可分两行显示
 （如 GLM 段 + 内存监控段各占一行），单行超终端宽度导致尾部段被 "..." 截断的问题随之消除。
-`\r`（U+000D）仍剥（防 CRLF 双行注入），其余控制字符照剥。补丁幂等可重打：
+`\r`（U+000D）仍剥（防 CRLF 双行注入），其余控制字符照剥。
+v6 补丁（2026-09-07）进一步把 label 预算扩至 280：extra 段稳定三行显示
+（GLM 段 / 内存监控段 / R+M 复合段，见上方完整实拍图）。补丁幂等可重打：
 
 ```bash
 bash ~/.claude/plugins/claude-hud/patch-sgr.sh   # claude-hud 升级后再跑一次即可
