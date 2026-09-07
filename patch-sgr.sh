@@ -167,8 +167,13 @@ p = sys.argv[1]
 src = open(p).read()
 OLD = "const MAX_LABEL_LENGTH = 50;"
 NEW = "const MAX_LABEL_LENGTH = 150; // PATCH(2026-08-26-v3): 预测段扩容（patch-sgr.sh）"
-if "PATCH(2026-08-26-v3)" in src:
-    print("✓ MAX_LABEL_LENGTH 扩容已是最新，跳过"); sys.exit(0)
+# 2026-09-07 幂等加固: 标记检测改为状态值检测——若后续版本(如 v5 扩容)的替换
+# 文本抹掉 v3 注释标记, 标记检测会误走替换分支并 assert 崩溃(部署侧实测事故);
+# "当前值非 50 即已扩容" 对任意后代值幂等。
+import re
+_m = re.search(r'const MAX_LABEL_LENGTH = (\d+);', src)
+if _m and _m.group(1) != "50":
+    print("✓ MAX_LABEL_LENGTH 已扩容(=%s)，v3 跳过" % _m.group(1)); sys.exit(0)
 assert OLD in src, "MAX_LABEL_LENGTH = 50 未匹配（结构可能又变，请人工核对）"
 src = src.replace(OLD, NEW)
 open(p, 'w').write(src)
