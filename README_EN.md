@@ -17,6 +17,12 @@ V1 5h ░░░░░ 1%-3:55 · V3 5h ██░░░ 40%-3:56 周29%-4d
       purple slots, green = healthy;  colors shift green→yellow→red at 70%/85% usage
 ```
 
+Full status bar on a real machine (2026-09-07) — GLM quota segment alongside memory monitors, Context and tool activity:
+
+![Full status bar](assets/hud-glm-full.png)
+
+> The extra segments occupy three lines: GLM quota / `MEM` pressure header / the `R:``M:` compound segment (physical-memory bar + top-3 footprint consumers merged with the four-way breakdown on one line). Below it, `config counts │ tool activity` is a claude-hud `mergeGroups` combined line.
+
 CLI mode (pairs with [cc-switch](https://github.com/farion1231/cc-switch) account switching):
 
 ```
@@ -79,7 +85,10 @@ python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli --refresh
 claude-hud sanitizes `--extra-cmd` output and strips **all** ANSI escapes (an anti-injection
 safety measure), so extra segments are dim-grey by nature. `patch-sgr.sh` patches its dist
 with a minimal whitelist — pass through `38;2` (truecolor) / `0` / `1` / `2` / `22` SGR codes
-only; **OSC / C0 / bidi / everything else still stripped**. Idempotent — re-run after claude-hud upgrades:
+only; **OSC / C0 / bidi / everything else still stripped**. Later patches (v4, 2026-09-02)
+pass through newlines so extra labels can span lines; v6 (2026-09-07) raises the label
+budget to 280 — the extra segments stably occupy three lines (GLM quota / memory monitor /
+R+M compound, see the full screenshot above). Idempotent — re-run after claude-hud upgrades:
 
 ```bash
 bash ~/.claude/plugins/claude-hud/patch-sgr.sh
