@@ -29,6 +29,11 @@ reset time crossed while the pool is still returned, or the pool vanishing
 from the response (the API drops inactive windows, the common idle-expiry
 shape, see README FAQ). crontab-style fixed-time semantics (no request
 needed), deduped per window cycle via the same latch file under a "reset:" key.
+For punctual delivery a detached daemon (--window-daemon) is spawned while the
+window runs: sleeps until reset-10min, recalibrates once against the API
+(rescheduling itself if the moment drifted), then fires at the reset moment
+even with Claude Code closed; the statusline poll path stays as fallback and
+both share the latch.
 Forecast data lives in .glm-usage-history.json (percentage time series,
 reset-segmented, throttled appends); notification dedup latch in
 .glm-notify-state.json. Both are lazily created — delete to roll back.
@@ -37,6 +42,7 @@ reset-segmented, throttled appends); notification dedup latch in
 import json
 import os
 import re
+import sys
 import subprocess
 import time
 import datetime
@@ -314,6 +320,12 @@ def check_notify(state, pools_info, now):
     return triggered, dirty
 
 
+def _window_line(reset_ms):
+    """到期通知文案（轮询路径与 daemon 路径共用，含到期绝对时刻）。"""
+    end = datetime.datetime.fromtimestamp(reset_ms / 1000)
+    return f"V1 5h 窗口已结束（{end.hour}:{end.minute:02d} 到期），额度已恢复，可切回使用"
+
+
 def check_window_reset(state, data_map, now):
     """V1 5h 窗口到期通知（2026-09-09 增补）：窗口结束首次被观测到 → 弹
     「额度已恢复」。「结束」有两种观测形态（API 只在窗口活跃期返回
@@ -349,19 +361,130 @@ def check_window_reset(state, data_map, now):
             return None, False
         rec["expired"] = True
         state[key] = rec
-        end = datetime.datetime.fromtimestamp(current / 1000)
-        return f"V1 5h 窗口已结束（{end.hour}:{end.minute:02d} 到期），额度已恢复，可切回使用", True
+        return _window_line(current), True
     # 池消失：此前进行中 → 依池消失语义视为已结束；无记录/已去重 → 静默
     if not (rec and not rec.get("expired")):
         return None, False
     rec["expired"] = True
     state[key] = rec
-    end_ms = rec.get("reset_ms")
-    when = ""
-    if end_ms:
-        end = datetime.datetime.fromtimestamp(end_ms / 1000)
-        when = f"（{end.hour}:{end.minute:02d} 到期）"
-    return f"V1 5h 窗口已结束{when}，额度已恢复，可切回使用", True
+    return _window_line(rec["reset_ms"]), True
+
+
+# ===================== 窗口到期 daemon（2026-09-09 增补） =====================
+# 设计（用户提案）：知道 reset 时刻后不再受轮询盲区限制——孵化 detached
+# sleeper，reset 前 10min 校准一次（防时刻漂移），到点准时弹，Claude Code
+# 关着也触发。statusline 轮询路径保留为兜底（daemon 意外死亡时补弹），
+# 两路共用 STATE_FILE latch：先到者置 expired，后到者静默退出。
+# 生命周期：start_new_session 脱离 HUD 进程组（同 send_notification），
+# 进程随触发/退出条件自行消亡，每窗口周期至多一个在位。
+
+DAEMON_CAL_LEAD = 600    # reset 前 10min 校准
+DAEMON_POLL_STEP = 300   # 等待循环墙钟对表步长（睡眠唤醒后立即补剩余等待）
+
+
+def _daemon_wait(deadline, target_ms):
+    """睡到绝对墙钟 deadline。每 DAEMON_POLL_STEP 旁路读一次 latch（零
+    API 调用）：已 expired（轮询路径抢先）或周期换代（reset_ms 变了，
+    新 daemon 已由轮询路径接管）→ True 退出。latch 检查前置于 remain
+    判断——deadline 已过（睡眠跨点唤醒）也要先看 latch，省一次无谓校准
+    fetch。墙钟步进保证系统睡眠唤醒后立即对表，不依赖 monotonic 时钟。"""
+    while True:
+        rec = (load_side_file(STATE_FILE).get("reset:V1:5h") or {})
+        if rec.get("expired") or rec.get("reset_ms") != target_ms:
+            return True
+        remain = deadline - time.time()
+        if remain <= 0:
+            return False
+        time.sleep(min(remain, DAEMON_POLL_STEP))
+
+
+def _daemon_calibrate(target_ms):
+    """reset 前校准：fetch 一次核对 reset_ms，漂移则返回新时刻。
+    fetch 失败 → 信任原时刻（宁漏勿扰，轮询兜底仍在）；池消失 → 原时刻
+    （窗口终点由开闸时刻决定，不因池消失提前，见 check_window_reset）。"""
+    jwt = os.environ.get("GLM_V1_JWT", "")
+    data = fetch_api((V1_TOKEN, jwt)) if V1_TOKEN else None
+    if not (data and data.get("success")):
+        return target_ms
+    pool = next((p for p in extract_pools("V1", data) if p[0] == "V1:5h"), None)
+    return pool[2] if pool and pool[2] else target_ms
+
+
+def _daemon_claim(target_ms):
+    """daemon 自领新周期：校准发现时刻漂移且轮询路径无人接手（Claude
+    Code 关着）时，自己把 state 推进到新周期，保住准点性。"""
+    state = load_side_file(STATE_FILE)
+    state["reset:V1:5h"] = {"reset_ms": target_ms,
+                            "expired": target_ms <= time.time() * 1000,
+                            "daemon": time.time()}
+    save_side_file(STATE_FILE, state)
+
+
+def _daemon_fire(target_ms):
+    """终态触发：latch 先落盘再弹（同预警纪律）。latch 已 expired 或
+    reset_ms 已换代 → 静默退出（轮询路径抢先/接管）。返回是否真的弹了。"""
+    state = load_side_file(STATE_FILE)
+    rec = state.get("reset:V1:5h") or {}
+    if rec.get("expired") or rec.get("reset_ms") != target_ms:
+        return False
+    rec["expired"] = True
+    state["reset:V1:5h"] = rec
+    save_side_file(STATE_FILE, state)
+    send_notification("GLM 5h 窗口", [_window_line(target_ms)])
+    return True
+
+
+def window_daemon(target_ms):
+    """--window-daemon 主循环：睡到 reset-10min → 校准（漂移则自领新
+    周期重排，循环收敛：下一轮校准值即目标值）→ 睡到 reset → latch+弹。
+    任何分叉点先看 latch，轮询路径处理过即静默退出。"""
+    target = target_ms / 1000
+    while True:
+        if _daemon_wait(target - DAEMON_CAL_LEAD, target_ms):
+            return
+        new_ms = _daemon_calibrate(target_ms)
+        if new_ms == target_ms:
+            break
+        target_ms, target = new_ms, new_ms / 1000
+        _daemon_claim(target_ms)
+    _daemon_fire(target_ms)
+
+
+def _daemon_alive():
+    """pgrep 探活（-f 全命令行匹配 --window-daemon）。失败宁可假设活着：
+    误判死亡 → 重复孵化（latch 兜底只弹一条）；误判存活 → 失准点。"""
+    try:
+        return subprocess.run(
+            ["pgrep", "-f", "glm-usage.py --window-daemon"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5,
+        ).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return True
+
+
+def ensure_window_daemon(state, reset_ms):
+    """排程门：窗口进行中且无存活 daemon 时孵化。daemon flag 是第一道
+    闸（statusline 每 120s 重入防重复孵化），pgrep 复核是第二道（reboot
+    后 flag 残留、daemon 已死时允许补孵）。flag 落盘先于 spawn——spawn
+    与下一轮 statusline 重入之间的间隙靠它挡住重复孵化。"""
+    rec = state.get("reset:V1:5h") or {}
+    if rec.get("expired"):
+        return
+    if rec.get("daemon") and _daemon_alive():
+        return
+    rec["daemon"] = time.time()
+    state["reset:V1:5h"] = rec
+    save_side_file(STATE_FILE, state)
+    try:
+        subprocess.Popen(
+            [sys.executable, os.path.abspath(__file__),
+             "--window-daemon", str(reset_ms)],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        pass
 
 
 def _eta_suffix(key, eta_ms):
@@ -596,6 +719,11 @@ def format_usage(data, bar_width=10, account="", forecast=None, compact=False):
 
 
 def main():
+    argv = sys.argv[1:]
+    if argv and argv[0] == "--window-daemon":
+        if len(argv) > 1 and argv[1].isdigit():
+            window_daemon(int(argv[1]))
+        return
     env_key = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
     tokens = token_list()
     if not tokens:
@@ -655,6 +783,13 @@ def main():
             send_notification("GLM 额度预警", [_notify_line(i) for i in triggered])
         if reset_line:
             send_notification("GLM 5h 窗口", [reset_line])
+        # 窗口进行中 → 确保到期 daemon 在位（准点通知，补轮询盲区；
+        # state 此处已含 check_window_reset 刚写的 reset:V1:5h 记录）
+        v1 = data_map.get("Glm5.3-V1")
+        pool5h = next((p for p in extract_pools("V1", v1) if p[0] == "V1:5h"),
+                      None) if v1 else None
+        if pool5h and pool5h[2] and pool5h[2] > now * 1000:
+            ensure_window_daemon(state, pool5h[2])
 
     # 显示模式：current=只显示当前会话账号（默认），all=全部账号
     show = os.environ.get("GLM_HUD_SHOW", "current")
