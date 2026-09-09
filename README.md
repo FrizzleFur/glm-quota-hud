@@ -77,7 +77,7 @@ V3 (积分套餐) ← 当前会话
 - **速率预测** — 📈 5h 池近 45min 子窗口消耗速率（%/h）、🗓 周池日均耗（%/d）、剩余量外推还能用多久，✅ 撑得到重置 / ⚠️ 预计耗尽时刻
 - **90% 阈值预警**（`GLM_HUD_WARN` 可配）— 状态栏 🔥 图标 + macOS 系统通知（latch 去重、回落自动复位、fire-and-forget 不占 HUD 3s 预算）
 - **V3 会话跨账号补渲染 MCP 段**（2026-09-02）— 当前会话为 V3 时从 V1 数据补 `🛠️ mcp%`，`GLM_HUD_SHOW=all` / current=V1 时不重复
-- **5h 窗口到期通知**（2026-09-09）— V1 的 5h 窗口结束弹一次 macOS 通知「额度已恢复，可切回使用」：reset 时刻被翻过、或池从 API 响应消失（闲置过期的常态）均判定结束；按窗口周期 latch 去重。窗口进行中自动孵化 detached daemon——reset 前 10min 校准一次时刻后到点准弹，Claude Code 没开也触发（statusline 轮询兜底，两路共用 latch）
+- **5h 窗口到期通知**（2026-09-09）— V1 的 5h 窗口结束弹一次 macOS 通知「额度已恢复，可切回使用」：reset 时刻被翻过、或池从 API 响应消失（闲置过期的常态）均判定结束；按窗口周期 latch 去重。窗口进行中自动孵化 detached daemon——reset 前 10min 校准一次时刻、前 20s 准弹，Claude Code 没开也触发（statusline 轮询兜底，两路共用 latch）
 - 依赖 `patch-sgr.sh` v3 补丁（label 预算 50→150 UTF-16 单元）+ v4 补丁（sanitize 放行换行符，支持 extra label 两行显示）
 
 ### 两个脚本的关系

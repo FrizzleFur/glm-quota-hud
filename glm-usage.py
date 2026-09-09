@@ -31,7 +31,7 @@ shape, see README FAQ). crontab-style fixed-time semantics (no request
 needed), deduped per window cycle via the same latch file under a "reset:" key.
 For punctual delivery a detached daemon (--window-daemon) is spawned while the
 window runs: sleeps until reset-10min, recalibrates once against the API
-(rescheduling itself if the moment drifted), then fires at the reset moment
+(rescheduling itself if the moment drifted), then fires 20s before reset
 even with Claude Code closed; the statusline poll path stays as fallback and
 both share the latch.
 Forecast data lives in .glm-usage-history.json (percentage time series,
@@ -378,7 +378,8 @@ def check_window_reset(state, data_map, now):
 # 生命周期：start_new_session 脱离 HUD 进程组（同 send_notification），
 # 进程随触发/退出条件自行消亡，每窗口周期至多一个在位。
 
-DAEMON_CAL_LEAD = 600    # reset 前 10min 校准
+DAEMON_CAL_LEAD = 600    # reset 前 10min 校准（时刻漂移纠偏窗口）
+DAEMON_FIRE_LEAD = 20    # reset 前 20s 弹通知（用户 2026-09-09 拍板）
 DAEMON_POLL_STEP = 300   # 等待循环墙钟对表步长（睡眠唤醒后立即补剩余等待）
 
 
@@ -436,8 +437,10 @@ def _daemon_fire(target_ms):
 
 def window_daemon(target_ms):
     """--window-daemon 主循环：睡到 reset-10min → 校准（漂移则自领新
-    周期重排，循环收敛：下一轮校准值即目标值）→ 睡到 reset → latch+弹。
-    任何分叉点先看 latch，轮询路径处理过即静默退出。"""
+    周期重排，循环收敛：下一轮校准值即目标值）→ 再睡到 reset-20s →
+    latch+弹。校准与弹之间必须隔最后一段等待——否则通知会在校准点
+    提前 10min 落地（2026-09-09 实测踩过：首弹早了约 9 分钟）。任何
+    分叉点先看 latch，轮询路径处理过即静默退出。"""
     target = target_ms / 1000
     while True:
         if _daemon_wait(target - DAEMON_CAL_LEAD, target_ms):
@@ -447,6 +450,8 @@ def window_daemon(target_ms):
             break
         target_ms, target = new_ms, new_ms / 1000
         _daemon_claim(target_ms)
+    if _daemon_wait(target - DAEMON_FIRE_LEAD, target_ms):
+        return
     _daemon_fire(target_ms)
 
 
