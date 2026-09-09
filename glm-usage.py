@@ -23,6 +23,12 @@ Format: "V1 ⚡谷5h ██░░░░░░░░ 1%↻4:52  🛠️ mcp8%  �
 Quota warning: any pool at/above GLM_HUD_WARN (default 90) swaps its icon to
 🔥, appends "!<eta>" (only when usage will exhaust BEFORE reset), and fires a
 one-shot macOS notification carrying the full forecast (rate, ETA, verdict).
+Window-end notice (2026-09-09): when V1's 5h window ends, a one-shot macOS
+notification fires ("quota restored, switch back"). Two observation forms —
+reset time crossed while the pool is still returned, or the pool vanishing
+from the response (the API drops inactive windows, the common idle-expiry
+shape, see README FAQ). crontab-style fixed-time semantics (no request
+needed), deduped per window cycle via the same latch file under a "reset:" key.
 Forecast data lives in .glm-usage-history.json (percentage time series,
 reset-segmented, throttled appends); notification dedup latch in
 .glm-notify-state.json. Both are lazily created — delete to roll back.
@@ -172,7 +178,8 @@ def save_cache(data_map, current_label=""):
 # ===================== 预测与预警（2026-08-26 增补） =====================
 # 伴生数据文件（惰性创建，删除即回滚到无预测/无通知行为）：
 #   HISTORY_FILE: {"V1:5h": [[ts, pct], ...]}  percentage 时间序列
-#   STATE_FILE:   {"V1:5h": {"notified": true, "ts": ...}}  通知去重 latch
+#   STATE_FILE:   {"V1:5h": {"notified": true, "ts": ...}}  预警去重 latch；
+#                 {"reset:V1:5h": {"reset_ms": ..., "expired": ...}} 窗口到期追踪
 
 def pool_key(account, lim):
     """稳定池标识。V1 两池类型即稳定；V3 双 CREDIT_LIMIT 用 API 稳定字段
@@ -307,6 +314,56 @@ def check_notify(state, pools_info, now):
     return triggered, dirty
 
 
+def check_window_reset(state, data_map, now):
+    """V1 5h 窗口到期通知（2026-09-09 增补）：窗口结束首次被观测到 → 弹
+    「额度已恢复」。「结束」有两种观测形态（API 只在窗口活跃期返回
+    TOKENS_LIMIT，见 README FAQ）：
+    - 池仍在、reset_ms 被时间追上（到期后宽限期内仍在响应里）→ 常规形态
+    - 此前进行中而池消失（到期后无新请求，池整体移出响应）→ 闲置过期
+      主形态，依据池消失语义「窗口已结束且未开新窗」判定
+    语义对齐 crontab 峰谷提醒的固定时刻通知——到期不依赖新请求，闲置也
+    照常恢复，故到期即弹、提醒可切回。
+    状态存 STATE_FILE 的 "reset:V1:5h" 键，与 check_notify 的预警 latch
+    （裸 "V1:5h" 键）隔离——预警回落走 state.pop(key) 整键清除，混用会
+    被连带抹掉窗口记录。转移规则：
+    - 首次观测 / reset_ms 变化（新窗口开闸）→ 静默记录不弹：防首装误弹、
+      开窗时刻无信息量（用户自己发的请求）；跨离线错过的到期不补弹
+      （reset_ms 已换新），宁漏勿扰，与预警通知同一哲学
+    - reset_ms 不变首次翻过期，或此前进行中而池消失 → 弹一次，expired
+      置位去重
+    - V1 fetch 失败时 data_map 沿用旧缓存，reset_ms 是墙钟真值，过期
+      照常成立（缓存越旧越倾向命中，无结构性漏窗）
+    返回 (notify_line, dirty)，调用方先落盘再弹（同预警纪律）。"""
+    v1 = data_map.get("Glm5.3-V1")
+    if not v1:
+        return None, False
+    key = "reset:V1:5h"
+    rec = state.get(key) or {}
+    pool = next((p for p in extract_pools("V1", v1) if p[0] == "V1:5h"), None)
+    if pool and pool[2]:
+        current = pool[2]
+        if rec.get("reset_ms") != current:
+            state[key] = {"reset_ms": current, "expired": current <= now * 1000}
+            return None, True
+        if rec.get("expired") or current > now * 1000:
+            return None, False
+        rec["expired"] = True
+        state[key] = rec
+        end = datetime.datetime.fromtimestamp(current / 1000)
+        return f"V1 5h 窗口已结束（{end.hour}:{end.minute:02d} 到期），额度已恢复，可切回使用", True
+    # 池消失：此前进行中 → 依池消失语义视为已结束；无记录/已去重 → 静默
+    if not (rec and not rec.get("expired")):
+        return None, False
+    rec["expired"] = True
+    state[key] = rec
+    end_ms = rec.get("reset_ms")
+    when = ""
+    if end_ms:
+        end = datetime.datetime.fromtimestamp(end_ms / 1000)
+        when = f"（{end.hour}:{end.minute:02d} 到期）"
+    return f"V1 5h 窗口已结束{when}，额度已恢复，可切回使用", True
+
+
 def _eta_suffix(key, eta_ms):
     """ETA 时刻/时长：5h 池 !H.h 小数小时（!2.1h），周池/MCP !D.d 天。
     （通知里用绝对时刻 remaining_clock，label 用时长省字符。）eta 已过
@@ -351,16 +408,16 @@ def _emergency_label(forecast):
     return ("·".join(segs) or "GLM")[:49] + "…"
 
 
-def send_notification(triggered):
-    """多池合并一条通知（禁止 N 条串行 osascript）。latch 已由调用方先行
+def send_notification(title, lines):
+    """多事件合并一条通知（禁止 N 条串行 osascript）。latch 已由调用方先行
     落盘（写盘毫秒级；若先通知后落盘、进程在间隙被杀会重复弹）。Popen
     fire-and-forget：不等待（osascript 实测 0.3-0.8s，fetch 慢路径 2s+
     串行会压穿 HUD 3s 总超时），start_new_session 脱离进程组规避 HUD 按
     进程组 kill。tradeoff：通知失败/被杀时 latch 已置 → 该次通知永久
     丢失（宁漏勿扰）。"""
-    body = " · ".join(_notify_line(i) for i in triggered)
+    body = " · ".join(lines)
     body = body.replace("\\", "\\\\").replace('"', '\\"')  # AppleScript 层转义
-    script = f'display notification "{body}" with title "GLM 额度预警"'
+    script = f'display notification "{body}" with title "{title}"'
     try:
         subprocess.Popen(
             ["osascript", "-e", script],
@@ -591,10 +648,13 @@ def main():
     if updated:
         state = load_side_file(STATE_FILE)
         triggered, dirty = check_notify(state, list(forecast.values()), now)
-        if dirty:
+        reset_line, reset_dirty = check_window_reset(state, data_map, now)
+        if dirty or reset_dirty:
             save_side_file(STATE_FILE, state)  # latch 先落盘（毫秒级），再 fire-and-forget
         if triggered:
-            send_notification(triggered)
+            send_notification("GLM 额度预警", [_notify_line(i) for i in triggered])
+        if reset_line:
+            send_notification("GLM 5h 窗口", [reset_line])
 
     # 显示模式：current=只显示当前会话账号（默认），all=全部账号
     show = os.environ.get("GLM_HUD_SHOW", "current")

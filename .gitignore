@@ -2,3 +2,6 @@ providers.json
 .quota-cache.json
 __pycache__/
 .DS_Store
+.glm-usage-cache.json
+.glm-usage-history.json
+.glm-notify-state.json
