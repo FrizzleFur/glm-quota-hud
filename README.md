@@ -130,6 +130,24 @@ python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli
 
 `--refresh` 跳过缓存强刷（120s TTL 内默认读缓存，保护 API）。
 
+## pi coding agent 集成（footer 常驻额度条）
+
+把额度条装进 [pi](https://github.com/earendil-works/pi) 终端的 footer（pi 扩展 API 的 `ctx.ui.setStatus`，多扩展并存）：
+
+```bash
+# 前提：已按「快速开始」装好 glm_quota_hud.py 且 export 过 GLM_V1_TOKEN / GLM_V3_TOKEN
+mkdir -p ~/.pi/agent/extensions
+cp pi/glm-hud.ts ~/.pi/agent/extensions/
+```
+
+- 启动 pi 后 footer 出现一行额度状态（纯文本进度条——pi 会剥离 ANSI 彩色），会话启动时与每 5 分钟自动刷新（脚本自带 120s 缓存）
+- `/glmhud` 手动刷新
+- 默认调用 `python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli`（即 install.sh 的安装位置）；用环境变量 `GLM_HUD_CMD` 覆盖，如指向 glm-usage.py 深度定制版：
+  ```bash
+  export GLM_HUD_CMD="python3 $HOME/.claude/plugins/claude-hud/glm-usage.py --mode cli"
+  ```
+- 实现要点：扩展内 `setInterval` 必须 `unref()`，否则 pi 的 `-p` / rpc 模式跑完不退出（2026-10-15 实测踩坑）
+
 ## 配置
 
 复制 `providers.example.json` 为 `providers.json`（install.sh 已代劳），可调：
