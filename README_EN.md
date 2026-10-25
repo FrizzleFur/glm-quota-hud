@@ -76,6 +76,10 @@ The pain of juggling multiple GLM accounts with [cc-switch](https://github.com/f
 > cc-switch handles account switching & quota cards; glm-quota-hud puts quota into an
 always-visible status bar — together they form a complete workflow.
 
+Want quota rows ("5-hour / weekly" remaining + reset time) right on the cc-switch provider card?
+See [cc-switch/README.md](cc-switch/README.md) (in Chinese) — paste one script; the `{{apiKey}}`
+variable pulls the key from each provider's own config, so the script contains no secrets.
+
 ```bash
 python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli --refresh
 ```

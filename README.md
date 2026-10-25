@@ -118,6 +118,8 @@ export GLM_V3_TOKEN="你的积分套餐token"
 
 > CC Switch 负责账号切换与总额度卡片，glm-quota-hud 把额度搬进状态栏常驻监控——两者组成完整工作流。
 
+想让 CC Switch 的供应商卡片直接显示「5小时 / 每周」额度与重置时间？见 [cc-switch/README.md](cc-switch/README.md)——粘贴一段脚本即可，`{{apiKey}}` 变量自动引用供应商自己的 Key，脚本零密钥。
+
 ```bash
 # 切换前：看清各账号窗口余量
 python3 ~/.claude/plugins/claude-hud/glm_quota_hud.py --mode cli --refresh
